@@ -135,8 +135,25 @@ const handleLinkClick = () => {
   return (
     <nav className="navbar navbar-expand-lg fixed-top bg-white shadow-sm" ref={navbarRef}>
       <div className="container-fluid">
-      <Link className="navbar-brand" to="/" onClick={handleLinkClick}>
-  SnapBuy
+
+{ /*   updated the NAVBAR WITH IMAGE <Link className="navbar-brand" to="/" onClick={handleLinkClick}>
+//  SnapBuy
+//</Link> */}
+
+<Link
+  className="navbar-brand d-flex align-items-center"
+  to="/"
+  onClick={handleLinkClick}
+>
+  <img
+    src="/snapbuy-logo.svg"
+    alt="SnapBuy"
+    style={{
+      height: "42px",
+      width: "auto",
+      objectFit: "contain"
+    }}
+  />
 </Link>
         <button
   className="navbar-toggler"
