@@ -1,50 +1,105 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useContext, useEffect } from "react";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import AppContext from "../Context/Context";
 import axios from "../axios";
 import { toast } from "react-toastify";
+import unplugged from "../assets/unplugged.png";
+import { useAuth } from "../auth/AuthContext";
 
 const Product = () => {
   const { id } = useParams();
-  const { data, addToCart, removeFromCart, cart, refreshData } = useContext(AppContext);
+  const { data, addToCart, removeFromCart, refreshData } = useContext(AppContext);
+  const { user } = useAuth();
   const [product, setProduct] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [isProductLoading, setIsProductLoading] = useState(true);
+  const [isImageLoading, setIsImageLoading] = useState(true);
   const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const response = await axios.get(
-          `${baseUrl}/api/product/${id}`
-        );
-        setProduct(response.data);
-        console.log(response.data);
-        if (response.data.imageName) {
-          fetchImage();
-        } else {
-          setImageUrl("/fallback-image.jpg"); // Use a fallback image
-        }
-      } catch (error) {
-        console.error("Error fetching product:", error);
-      }
-    };
+    let isActive = true;
+    let objectUrl;
+    const cachedProduct = data.find((item) => String(item.id) === id);
 
-    const fetchImage = async () => {
+    setProduct(cachedProduct || null);
+    setImageUrl("");
+    setIsProductLoading(!cachedProduct);
+    setIsImageLoading(true);
+
+    const loadImage = async (productData) => {
+      if (productData.imageData) {
+        const imageType = productData.imageType || "image/jpeg";
+        const image = productData.imageData.startsWith("data:") || productData.imageData.startsWith("http")
+          ? productData.imageData
+          : `data:${imageType};base64,${productData.imageData}`;
+        if (isActive) {
+          setImageUrl(image);
+        }
+        return;
+      }
+
+      if (!productData.imageName) {
+        if (isActive) {
+          setImageUrl(unplugged);
+          setIsImageLoading(false);
+        }
+        return;
+      }
+
       try {
         const response = await axios.get(
           `${baseUrl}/api/product/${id}/imageFile`,
           { responseType: "blob" }
         );
-        setImageUrl(URL.createObjectURL(response.data));
+        const nextObjectUrl = URL.createObjectURL(response.data);
+        if (isActive) {
+          objectUrl = nextObjectUrl;
+          setImageUrl(nextObjectUrl);
+        } else {
+          URL.revokeObjectURL(nextObjectUrl);
+        }
       } catch (error) {
         console.error("Error fetching product image:", error);
-        setImageUrl("/fallback-image.jpg"); // Use a fallback image
+        if (isActive) {
+          setImageUrl(unplugged);
+          setIsImageLoading(false);
+        }
       }
     };
-    fetchProduct();
-  }, [id]);
+
+    const loadProduct = async () => {
+      try {
+        // The catalog already has the product details, so use them immediately
+        // when the user navigates from Home instead of waiting for another API call.
+        if (cachedProduct) {
+          await loadImage(cachedProduct);
+          return;
+        }
+
+        const response = await axios.get(`${baseUrl}/api/product/${id}`);
+        if (!isActive) return;
+        setProduct(response.data);
+        setIsProductLoading(false);
+        await loadImage(response.data);
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        if (isActive) {
+          setProduct(null);
+          setIsProductLoading(false);
+          setImageUrl(unplugged);
+          setIsImageLoading(false);
+        }
+      }
+    };
+
+    loadProduct();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [id, data, baseUrl]);
 
   const deleteProduct = async () => {
     try {
@@ -68,14 +123,34 @@ const Product = () => {
     toast.success("Product added to cart");
   };
 
+  if (isProductLoading) {
+    return (
+      <div className="container mt-5 pt-5">
+        <div className="row g-4 product-detail-skeleton" aria-busy="true">
+          <span className="visually-hidden" role="status">Loading product details…</span>
+          <div className="col-md-6">
+            <div className="product-detail-image-skeleton loading-skeleton" />
+          </div>
+          <div className="col-md-6 pt-3">
+            <div className="loading-skeleton skeleton-line skeleton-badge mb-4" />
+            <div className="loading-skeleton skeleton-line skeleton-heading mb-3" />
+            <div className="loading-skeleton skeleton-line skeleton-brand mb-4" />
+            <div className="loading-skeleton skeleton-line mb-2" />
+            <div className="loading-skeleton skeleton-line mb-2" />
+            <div className="loading-skeleton skeleton-line skeleton-description mb-4" />
+            <div className="loading-skeleton skeleton-line skeleton-price mb-4" />
+            <div className="loading-skeleton skeleton-button mb-4" />
+            <div className="loading-skeleton skeleton-line skeleton-brand" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="container mt-5 pt-5">
-        <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
+        <div className="alert alert-warning" role="alert">Product details could not be loaded.</div>
       </div>
     );
   }
@@ -85,12 +160,18 @@ const Product = () => {
       <div className="row">
         {/* Product Image */}
         <div className="col-md-6 mb-4">
-          <div className="card border-0">
+          <div className="card border-0 product-detail-image-card">
+            {isImageLoading && <div className="product-detail-image-skeleton loading-skeleton" aria-hidden="true" />}
             <img
-              src={imageUrl}
+              src={imageUrl || unplugged}
               alt={product.name}
               className="card-img-top img-fluid"
-              style={{ maxHeight: "500px", objectFit: "contain" }}
+              style={{ maxHeight: "500px", objectFit: "contain", display: isImageLoading ? "none" : "block" }}
+              onLoad={() => setIsImageLoading(false)}
+              onError={(event) => {
+                event.currentTarget.src = unplugged;
+                setIsImageLoading(false);
+              }}
             />
           </div>
         </div>
@@ -129,25 +210,27 @@ const Product = () => {
             <span className="fw-bold text-success">{product.stockQuantity}</span>
           </p>
 
-          <div className="d-flex gap-2">
-            <button
-              className="btn btn-outline-primary"
-              type="button"
-              onClick={handleEditClick}
-            >
-              <i className="bi bi-pencil me-1"></i>
-              Update
-            </button>
+          {user?.role === "admin" && (
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-outline-primary"
+                type="button"
+                onClick={handleEditClick}
+              >
+                <i className="bi bi-pencil me-1"></i>
+                Update
+              </button>
 
-            <button
-              className="btn btn-outline-danger"
-              type="button"
-              onClick={deleteProduct}
-            >
-              <i className="bi bi-trash me-1"></i>
-              Delete
-            </button>
-          </div>
+              <button
+                className="btn btn-outline-danger"
+                type="button"
+                onClick={deleteProduct}
+              >
+                <i className="bi bi-trash me-1"></i>
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

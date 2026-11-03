@@ -1,6 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import AppContext from "../Context/Context";
+
+const CATEGORIES = ["Laptop", "Headphone", "Mobile", "Electronics", "Toys", "Fashion"];
+
+const formatDateForInput = (dateValue) => {
+  if (!dateValue) return "";
+  const value = String(dateValue);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const dayFirstDate = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dayFirstDate) {
+    const [, day, month, year] = dayFirstDate;
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return "";
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const UpdateProduct = () => {
   const { id } = useParams();
@@ -19,83 +42,63 @@ const UpdateProduct = () => {
     productAvailable: false,
     stockQuantity: "",
   });
+  const { refreshData } = useContext(AppContext);
+  const baseUrl = import.meta.env.VITE_BASE_URL;
 
   useEffect(() => {
+    let isActive = true;
+    let imageObjectUrl;
+
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:9089/api/product/${id}`);
+        const response = await axios.get(`${baseUrl}/api/product/${id}`);
         const productData = response.data;
+        if (!isActive) return;
         setProduct(productData);
 
-        // Format date from backend (dd-MM-yyyy) to input format (yyyy-MM-dd)
-        let formattedDate = "";
-        if (productData.releaseDate) {
-          try {
-            console.log("Original date from backend:", productData.releaseDate);
-            
-            // Backend sends dd-MM-yyyy format (e.g., "11-05-2025")
-            if (typeof productData.releaseDate === 'string' && productData.releaseDate.includes('-')) {
-              const parts = productData.releaseDate.split('-');
-              if (parts.length === 3) {
-                const [day, month, year] = parts;
-                // Convert to yyyy-MM-dd for input field
-                formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-              }
-            }
-            // Fallback: try to parse as Date object
-            else {
-              const dateObj = new Date(productData.releaseDate);
-              if (!isNaN(dateObj.getTime())) {
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                formattedDate = `${year}-${month}-${day}`;
-              }
-            }
-            
-            console.log("Formatted date for input:", formattedDate);
-          } catch (dateError) {
-            console.error("Error formatting date:", dateError);
-          }
-        }
+        const productCategory = CATEGORIES.find(
+          (category) => category.toLowerCase() === String(productData.category || "").toLowerCase()
+        ) || productData.category || "";
 
-        // Set all product data including ID
         setUpdateProduct({
-          id: productData.id || null,
-          name: productData.name || "",
-          description: productData.description || "",
-          brand: productData.brand || "",
-          price: productData.price || "",
-          category: productData.category || "",
-          releaseDate: formattedDate,
-          productAvailable: productData.productAvailable || false,
-          stockQuantity: productData.stockQuantity || "",
+          id: productData.id ?? null,
+          name: productData.name ?? "",
+          description: productData.description ?? "",
+          brand: productData.brand ?? "",
+          price: productData.price ?? "",
+          category: productCategory,
+          releaseDate: formatDateForInput(productData.releaseDate),
+          productAvailable: Boolean(productData.productAvailable),
+          stockQuantity: productData.stockQuantity ?? "",
         });
+        // Show editable product fields immediately; image loading is independent.
+        setLoading(false);
 
-        // Fetch image
         if (productData.imageName) {
           try {
             const responseImage = await axios.get(
-              `http://localhost:9089/api/product/${id}/imageFile`,
+              `${baseUrl}/api/product/${id}/imageFile`,
               { responseType: "blob" }
             );
+            if (!isActive) return;
             const imageFile = new File(
-              [responseImage.data], 
-              productData.imageName, 
+              [responseImage.data],
+              productData.imageName,
               { type: responseImage.data.type }
             );
             setImage(imageFile);
-            setImagePreview(URL.createObjectURL(imageFile));
+            imageObjectUrl = URL.createObjectURL(imageFile);
+            setImagePreview(imageObjectUrl);
           } catch (imgError) {
             console.error("Error fetching image:", imgError);
           }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
-        alert("Failed to fetch product details. Please check the console.");
+        if (isActive) alert("Failed to fetch product details. Please check the console.");
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     };
 
@@ -105,11 +108,10 @@ const UpdateProduct = () => {
 
     // Cleanup function
     return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      isActive = false;
+      if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
     };
-  }, [id]);
+  }, [id, baseUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -148,7 +150,7 @@ const UpdateProduct = () => {
       console.log("Product JSON being sent:", JSON.stringify(productToSubmit, null, 2));
 
       const response = await axios.put(
-        `http://localhost:9089/api/product/${id}`,
+        `${baseUrl}/api/product/${id}`,
         formData,
         {
           headers: {
@@ -156,8 +158,7 @@ const UpdateProduct = () => {
           },
         }
     );
-    const { refreshData } = useContext(AppContext);
-    refreshData(true);
+      await refreshData(true);
 
       console.log("Product updated successfully:", response.data);
       alert("Product updated successfully!");
@@ -281,12 +282,9 @@ const UpdateProduct = () => {
               id="category"
             >
               <option value="">Select category</option>
-              <option value="laptop">Laptop</option>
-              <option value="headphone">Headphone</option>
-              <option value="mobile">Mobile</option>
-              <option value="electronics">Electronics</option>
-              <option value="toys">Toys</option>
-              <option value="fashion">Fashion</option>
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
             </select>
           </div>
 

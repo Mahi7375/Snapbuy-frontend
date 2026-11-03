@@ -6,7 +6,7 @@ import unplugged from "../assets/unplugged.png";
 const PRODUCTS_PER_PAGE = 8;
 
 const Home = ({ selectedCategory }) => {
-  const { data, isError, addToCart, refreshData } = useContext(AppContext);
+  const { data, isError, isProductsLoading, addToCart, refreshData } = useContext(AppContext);
   // const [isDataFetched, setIsDataFetched] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastProduct, setToastProduct] = useState(null);
@@ -151,8 +151,31 @@ const Home = ({ selectedCategory }) => {
       </div>
 
       <div className="container mt-5 pt-5">
-        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-          {!filteredProducts || filteredProducts.length === 0 ? (
+        <div
+          className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4"
+          aria-busy={isProductsLoading && data.length === 0}
+        >
+          {isProductsLoading && data.length === 0 ? (
+            <>
+              <span className="visually-hidden" role="status">Loading products…</span>
+              {Array.from({ length: PRODUCTS_PER_PAGE }, (_, index) => (
+                <div className="col" key={`product-skeleton-${index}`} aria-hidden="true">
+                  <div className="card h-100 shadow-sm product-skeleton-card">
+                    <div className="product-skeleton-image loading-skeleton" />
+                    <div className="card-body d-flex flex-column">
+                      <div className="loading-skeleton skeleton-line skeleton-title mb-3" />
+                      <div className="loading-skeleton skeleton-line skeleton-brand mb-4" />
+                      <hr />
+                      <div className="mt-auto">
+                        <div className="loading-skeleton skeleton-line skeleton-price mb-3" />
+                        <div className="loading-skeleton skeleton-button" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : !filteredProducts || filteredProducts.length === 0 ? (
             <div className="col-12 text-center my-5">
               <h4>No Products Available</h4>
             </div>

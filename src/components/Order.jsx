@@ -1,12 +1,19 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-const Order = () => {
+const Order = ({ customerEmail = null, title = "Order Management" }) => {
   const baseUrl = import.meta.env.VITE_BASE_URL;
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const visibleOrders = useMemo(() => {
+    if (!customerEmail) return orders;
+    const normalizedEmail = customerEmail.trim().toLowerCase();
+    return orders.filter(
+      (order) => (order.email || "").trim().toLowerCase() === normalizedEmail
+    );
+  }, [orders, customerEmail]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -88,11 +95,11 @@ const Order = () => {
 
   return (
     <div className="container mt-5 pt-5">
-      <h2 className="text-center mb-4">Order Management</h2>
+      <h2 className="text-center mb-4">{title}</h2>
       
       <div className="card shadow mb-4">
         <div className="card-header bg-primary text-white">
-          <h5 className="mb-0">Orders ({orders.length})</h5>
+          <h5 className="mb-0">Orders ({visibleOrders.length})</h5>
         </div>
         
         <div className="card-body p-0">
@@ -110,12 +117,12 @@ const Order = () => {
                 </tr>
               </thead>
               <tbody>
-                {orders.length === 0 ? (
+                {visibleOrders.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="text-center py-5 text-muted">No orders found</td>
                   </tr>
                 ) : (
-                  orders.map((order) => (
+                  visibleOrders.map((order) => (
                     <React.Fragment key={order.orderId}>
                       <tr>
                         <td>

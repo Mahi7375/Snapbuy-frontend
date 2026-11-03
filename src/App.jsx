@@ -10,6 +10,10 @@ import UpdateProduct from "./components/UpdateProduct";
 import Order from "./components/Order";
 import SearchResults from "./components/SearchResults";
 import Footer from "./components/Footer";
+import Login from "./components/Login";
+import AdminDashboard from "./components/AdminDashboard";
+import MyOrders from "./components/MyOrders";
+import ProtectedRoute from "./auth/ProtectedRoute";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import { ToastContainer } from "react-toastify";
@@ -67,12 +71,34 @@ function App() {
             path="/"
             element={<Home selectedCategory={selectedCategory} />}
           />
-          <Route path="/add_product" element={<AddProduct />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={
+            <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
+          } />
+          <Route path="/admin/add-product" element={
+            <ProtectedRoute role="admin"><AddProduct /></ProtectedRoute>
+          } />
+          <Route path="/admin/orders" element={
+            <ProtectedRoute role="admin"><Order /></ProtectedRoute>
+          } />
+          {/* Keep existing management URLs as admin-only aliases. */}
+          <Route path="/add_product" element={
+            <ProtectedRoute role="admin"><AddProduct /></ProtectedRoute>
+          } />
+          <Route path="/orders" element={
+            <ProtectedRoute role="admin"><Order /></ProtectedRoute>
+          } />
           <Route path="/product" element={<Product />} />
+          <Route path="/product/update/:id" element={
+            <ProtectedRoute role="admin"><UpdateProduct /></ProtectedRoute>
+          } />
           <Route path="/product/:id" element={<Product />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/product/update/:id" element={<UpdateProduct />} />
-          <Route path="/orders" element={<Order />} />
+          <Route path="/cart" element={
+            <ProtectedRoute role="customer"><Cart /></ProtectedRoute>
+          } />
+          <Route path="/my-orders" element={
+            <ProtectedRoute role="customer"><MyOrders /></ProtectedRoute>
+          } />
           <Route path="/search-results" element={<SearchResults />} />
         </Routes>
       </main>

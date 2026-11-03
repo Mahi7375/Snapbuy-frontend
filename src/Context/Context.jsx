@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, createContext } from "react";
 const AppContext = createContext({
   data: [],
   isError: "",
+  isProductsLoading: false,
   cart: [],
   addToCart: (product) => {},
   removeFromCart: (productId) => {},
@@ -20,6 +21,7 @@ const CACHE_DURATION = 5 * 60 * 1000;
 export const AppProvider = ({ children }) => {
   const [data, setData] = useState([]);
   const [isError, setIsError] = useState("");
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [cart, setCart] = useState(JSON.parse(localStorage.getItem('cart')) || []);
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -65,9 +67,12 @@ export const AppProvider = ({ children }) => {
     now - productsCacheTime < CACHE_DURATION
   ) {
     setData(productsCache);
+    setIsError("");
+    setIsProductsLoading(false);
     return;
   }
 
+  setIsProductsLoading(true);
   try {
     if (!productsRequest) {
       productsRequest = axios
@@ -87,6 +92,8 @@ export const AppProvider = ({ children }) => {
     setIsError("");
   } catch (error) {
     setIsError(error.message);
+  } finally {
+    setIsProductsLoading(false);
   }
 }, [baseUrl]);
 
@@ -103,7 +110,7 @@ export const AppProvider = ({ children }) => {
   }, [cart]);
   
   return (
-    <AppContext.Provider value={{ data, isError, cart, addToCart, removeFromCart,refreshData, clearCart  }}>
+    <AppContext.Provider value={{ data, isError, isProductsLoading, cart, addToCart, removeFromCart,refreshData, clearCart  }}>
       {children}
     </AppContext.Provider>
   );
