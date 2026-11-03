@@ -6,13 +6,42 @@ body,
     min-height: 100%;
 }
 
+html,
+body {
+    min-height: 100vh;
+}
+
 #root {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
-#root>.min-vh-100 {
+.app-shell {
     flex: 1;
-    min-height: 0 !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-main {
+    flex: 1 0 auto;
+    min-width: 0;
+}
+
+.snapbuy-footer {
+    flex-shrink: 0;
+    width: 100%;
+    margin-top: auto;
+}
+
+@media (max-width: 576px) {
+    .snapbuy-footer {
+        padding: 14px 10px 10px;
+    }
+
+    .footer-developer {
+        max-width: 100%;
+    }
+
 }

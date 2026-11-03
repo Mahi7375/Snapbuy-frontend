@@ -155,7 +155,9 @@ const UpdateProduct = () => {
             "Content-Type": "multipart/form-data",
           },
         }
-      );
+    );
+    const { refreshData } = useContext(AppContext);
+    refreshData(true);
 
       console.log("Product updated successfully:", response.data);
       alert("Product updated successfully!");

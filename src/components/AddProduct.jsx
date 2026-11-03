@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import AppContext from "../Context/Context";
 
 const AddProduct = () => {
   const [product, setProduct] = useState({
@@ -22,6 +23,7 @@ const AddProduct = () => {
   const [validated, setValidated] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const { refreshData } = useContext(AppContext);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -111,6 +113,7 @@ const AddProduct = () => {
         setImagePreview(null);
         setValidated(false);
         setErrors({});
+        refreshData(true);
         navigate("/");
       })
       .catch((error) => {
@@ -122,7 +125,6 @@ const AddProduct = () => {
         setLoading(false);
       });
   };
-
   return (
     <div className="container mt-5 pt-4">
       <form noValidate onSubmit={submitHandler} className="row g-4">

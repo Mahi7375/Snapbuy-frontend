@@ -52,7 +52,7 @@ const Product = () => {
       removeFromCart(id);
       console.log("Product deleted successfully");
       toast.success("Product deleted successfully");
-      refreshData();
+      refreshData(true);
       navigate("/");
     } catch (error) {
       console.error("Error deleting product:", error);

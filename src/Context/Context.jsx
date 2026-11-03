@@ -1,5 +1,6 @@
 import axios from "../axios";
-import { useState, useEffect, createContext } from "react";
+//import { useState, useEffect, createContext } from "react";
+import { useState, useEffect, useCallback, createContext } from "react";
 
 const AppContext = createContext({
   data: [],
@@ -10,6 +11,11 @@ const AppContext = createContext({
   refreshData:() =>{},
   updateStockQuantity: (productId, newQuantity) =>{}  
 });
+let productsCache = null;
+let productsCacheTime = 0;
+let productsRequest = null;
+
+const CACHE_DURATION = 5 * 60 * 1000;
 
 export const AppProvider = ({ children }) => {
   const [data, setData] = useState([]);
@@ -42,22 +48,55 @@ export const AppProvider = ({ children }) => {
     console.log("CART",cart)
   };
 
-  const refreshData = async () => {
-    try {
-      const response = await axios.get(`${baseUrl}/api/products`);
-      setData(response.data);
-    } catch (error) {
-      setIsError(error.message);
+  // const refreshData = async () => {
+  //   try {
+  //     const response = await axios.get(`${baseUrl}/api/products`);
+  //     setData(response.data);
+  //   } catch (error) {
+  //     setIsError(error.message);
+  //   }
+  // };
+  const refreshData = useCallback(async (forceRefresh = false) => {
+  const now = Date.now();
+
+  if (
+    !forceRefresh &&
+    productsCache &&
+    now - productsCacheTime < CACHE_DURATION
+  ) {
+    setData(productsCache);
+    return;
+  }
+
+  try {
+    if (!productsRequest) {
+      productsRequest = axios
+        .get(`${baseUrl}/api/products`)
+        .then((response) => {
+          productsCache = response.data;
+          productsCacheTime = Date.now();
+          return response.data;
+        })
+        .finally(() => {
+          productsRequest = null;
+        });
     }
-  };
+
+    const products = await productsRequest;
+    setData(products);
+    setIsError("");
+  } catch (error) {
+    setIsError(error.message);
+  }
+}, [baseUrl]);
 
   const clearCart =() =>{
     setCart([]);
   }
   
-  useEffect(() => {
-    refreshData();
-  }, []);
+  // useEffect(() => {
+  //   refreshData();
+  // }, []);
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));

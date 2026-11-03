@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import AppContext from "../Context/Context";
-import axios from "axios";
+// import axios from "axios";
 import CheckoutPopup from "./CheckoutPopup";
 import { Button } from 'react-bootstrap';
 
@@ -11,26 +11,30 @@ const Cart = () => {
   const [cartImage, setCartImage] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
-  const baseUrl = import.meta.env.VITE_BASE_URL;
+  // const baseUrl = import.meta.env.VITE_BASE_URL;
+
+  // useEffect(() => {
+  //   const fetchImagesAndUpdateCart = async () => {
+  //     console.log("Cart", cart);
+  //     try {
+  //       const response = await axios.get(`${baseUrl}/api/products`);
+  //       console.log("cart", cart);
+  //       setCartItems(cart);
+  //     } catch (error) {
+  //       console.error("Error fetching product data:", error);
+  //     }
+  //   };
+
+  //   if (cart.length) {
+  //     fetchImagesAndUpdateCart();
+  //   } else {
+  //     setCartItems([]);
+  //   }
+  // }, [cart]);
 
   useEffect(() => {
-    const fetchImagesAndUpdateCart = async () => {
-      console.log("Cart", cart);
-      try {
-        const response = await axios.get(`${baseUrl}/api/products`);
-        console.log("cart", cart);
-        setCartItems(cart);
-      } catch (error) {
-        console.error("Error fetching product data:", error);
-      }
-    };
-
-    if (cart.length) {
-      fetchImagesAndUpdateCart();
-    } else {
-      setCartItems([]);
-    }
-  }, [cart]);
+  setCartItems(cart);
+}, [cart]);
 
   useEffect(() => {
     const total = cartItems.reduce(

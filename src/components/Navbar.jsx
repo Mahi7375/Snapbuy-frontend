@@ -26,9 +26,9 @@ const navbarRef = useRef(null);
   const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  // useEffect(() => {
+  //   fetchInitialData();
+  // }, []);
 
   // 3. Add this to your useEffect or as a separate useEffect
 useEffect(() => {
@@ -48,15 +48,15 @@ useEffect(() => {
   };
 }, []);
 
-  // Initial data fetch (if needed)
-  const fetchInitialData = async () => {
-    try {
-      const response = await axios.get(`${baseUrl}/api/products`);
-      console.log(response.data, 'navbar initial data');
-    } catch (error) {
-      console.error("Error fetching initial data:", error);
-    }
-  };
+  // // Initial data fetch (if needed)
+  // const fetchInitialData = async () => {
+  //   try {
+  //     const response = await axios.get(`${baseUrl}/api/products`);
+  //     console.log(response.data, 'navbar initial data');
+  //   } catch (error) {
+  //     console.error("Error fetching initial data:", error);
+  //   }
+  // };
 
 // 4. Add these new functions
 // Toggle navbar collapse state

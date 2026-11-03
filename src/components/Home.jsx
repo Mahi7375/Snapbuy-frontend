@@ -1,24 +1,34 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AppContext from "../Context/Context";
 import unplugged from "../assets/unplugged.png";
 
+const PRODUCTS_PER_PAGE = 8;
+
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
-  const [isDataFetched, setIsDataFetched] = useState(false);
+  // const [isDataFetched, setIsDataFetched] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastProduct, setToastProduct] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // useEffect(() => {
+  //   if (!isDataFetched) {
+  //     refreshData();
+  //     setIsDataFetched(true);
+  //   }
+  // }, [refreshData, isDataFetched]);
+  useEffect(() => {
+  refreshData();
+}, [refreshData]);
 
   useEffect(() => {
-    if (!isDataFetched) {
-      refreshData();
-      setIsDataFetched(true);
-    }
-  }, [refreshData, isDataFetched]);
+    setCurrentPage(0);
+  }, [selectedCategory]);
 
-  useEffect(() => {
-    console.log(data, 'data from home page');
-  }, [data]);
+  // useEffect(() => {
+  //   console.log(data, 'data from home page');
+  // }, [data]);
 
   useEffect(() => {
     let toastTimer;
@@ -74,9 +84,18 @@ const Home = ({ selectedCategory }) => {
     setShowToast(true);
   };
 
-  const filteredProducts = selectedCategory
-    ? data.filter((product) => product.category === selectedCategory)
-    : data;
+  const filteredProducts = useMemo(
+    () => selectedCategory
+      ? data.filter((product) => product.category === selectedCategory)
+      : data,
+    [data, selectedCategory]
+  );
+  const pageCount = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const safePage = Math.min(currentPage, Math.max(pageCount - 1, 0));
+  const displayedProducts = filteredProducts.slice(
+    safePage * PRODUCTS_PER_PAGE,
+    (safePage + 1) * PRODUCTS_PER_PAGE
+  );
 
   if (isError) {
     return (
@@ -138,7 +157,7 @@ const Home = ({ selectedCategory }) => {
               <h4>No Products Available</h4>
             </div>
           ) : (
-            filteredProducts.map((product) => {
+            displayedProducts.map((product) => {
               const { id, brand, name, price, productAvailable, imageData, imageType, stockQuantity } = product;
               
               return (
@@ -150,6 +169,8 @@ const Home = ({ selectedCategory }) => {
                         alt={name}
                         className="card-img-top p-2"
                         style={{ height: "150px", objectFit: "cover" }}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           e.target.src = unplugged; // Fallback image if conversion fails
                         }}
@@ -178,6 +199,29 @@ const Home = ({ selectedCategory }) => {
             })
           )}
         </div>
+        {pageCount > 1 && (
+          <nav className="d-flex justify-content-center align-items-center gap-3 my-4" aria-label="Product pages">
+            <button
+              className="btn btn-outline-primary"
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(page - 1, 0))}
+              disabled={safePage === 0}
+            >
+              Previous
+            </button>
+            <span aria-live="polite">
+              Page {safePage + 1} of {pageCount}
+            </span>
+            <button
+              className="btn btn-outline-primary"
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(page + 1, pageCount - 1))}
+              disabled={safePage >= pageCount - 1}
+            >
+              Next
+            </button>
+          </nav>
+        )}
       </div>
     </>
   );
